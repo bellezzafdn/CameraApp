@@ -33,31 +33,41 @@ jobs:
             -scheme CameraApp \
             -sdk iphoneos \
             -configuration Release \
-            -archivePath ${{ github.workspace }}/build/CameraApp.xcarchive \
+            -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
-            archive | xcpretty || true
-
-      - name: Find and package IPA
-        run: |
-          echo "=== Archive contents ==="
-          find ${{ github.workspace }}/build/CameraApp.xcarchive -name "*.app" -type d
+            build 2>&1 | tee build.log | xcpretty || true
           
-          APP_PATH=$(find ${{ github.workspace }}/build/CameraApp.xcarchive -name "*.app" -type d | head -1)
+          echo "=== Build exit code: ${PIPESTATUS[0]} ==="
+
+      - name: Package IPA
+        run: |
+          echo "=== Searching for .app bundle ==="
+          find build -name "*.app" -type d
+          
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: No .app bundle found in archive!"
-            echo "Full archive structure:"
-            find ${{ github.workspace }}/build/CameraApp.xcarchive -type f | head -50
+            echo "Trying alternative path..."
+            APP_PATH=$(find build -name "*.app" -type d | head -1)
+          fi
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found. Full build directory:"
+            find build -type f | head -100
             exit 1
           fi
           
           echo "Found app at: $APP_PATH"
+          echo "App contents:"
+          ls -la "$APP_PATH"
+          
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
           zip -r CameraApp.ipa Payload
+          echo "=== IPA created ==="
           ls -la CameraApp.ipa
 
       - name: Upload IPA artifact

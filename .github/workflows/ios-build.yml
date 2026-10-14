@@ -26,19 +26,29 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build for iOS Simulator
+      - name: Build for device (unsigned)
         run: |
           xcodebuild \
             -project CameraApp.xcodeproj \
             -scheme CameraApp \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
-            -configuration Debug \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath ${{ github.workspace }}/build/CameraApp.xcarchive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            clean build | xcpretty || true
+            DEVELOPMENT_TEAM="" \
+            archive | xcpretty || true
 
-      - name: Build result
-        if: always()
-        run: echo "Build completed"
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r ${{ github.workspace }}/build/CameraApp.xcarchive/Products/Applications/CameraApp.app Payload/
+          zip -r CameraApp.ipa Payload
+          ls -la CameraApp.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CameraApp-IPA
+          path: CameraApp.ipa

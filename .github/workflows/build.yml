@@ -29,8 +29,8 @@ jobs:
       - name: Build for device (unsigned)
         run: |
           xcodebuild \
-            -project CameraApp.xcodeproj \
-            -scheme CameraApp \
+            -project Fotocamera.xcodeproj \
+            -scheme Fotocamera \
             -sdk iphoneos \
             -configuration Release \
             -derivedDataPath build \
@@ -42,36 +42,26 @@ jobs:
           
           echo "=== Build exit code: ${PIPESTATUS[0]} ==="
 
-      - name: Package IPA
+      - name: Package and Sign IPA
         run: |
-          echo "=== Searching for .app bundle ==="
-          find build -name "*.app" -type d
-          
-          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
-          
-          if [ -z "$APP_PATH" ]; then
-            echo "Trying alternative path..."
-            APP_PATH=$(find build -name "*.app" -type d | head -1)
-          fi
-          
-          if [ -z "$APP_PATH" ]; then
-            echo "ERROR: No .app found. Full build directory:"
-            find build -type f | head -100
-            exit 1
-          fi
-          
-          echo "Found app at: $APP_PATH"
-          echo "App contents:"
-          ls -la "$APP_PATH"
+          echo "=== Searching for .app bundle in Release-iphoneos ==="
+          ls -la build/Build/Products/Release-iphoneos/
           
           mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
-          zip -r CameraApp.ipa Payload
-          echo "=== IPA created ==="
-          ls -la CameraApp.ipa
+          cp -R build/Build/Products/Release-iphoneos/*.app Payload/
+          
+          echo "=== Setting executable permissions ==="
+          chmod +x Payload/*.app/*
+          
+          echo "=== Ad-hoc signing ==="
+          codesign --force --deep --sign - Payload/*.app
+          
+          echo "=== Creating Fotocamera.ipa ==="
+          zip -r Fotocamera.ipa Payload
+          ls -la Fotocamera.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CameraApp-IPA
-          path: CameraApp.ipa
+          name: Fotocamera-IPA
+          path: Fotocamera.ipa

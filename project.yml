@@ -1,4 +1,4 @@
-name: CameraApp
+name: Fotocamera
 options:
   bundleIdPrefix: com.bellezzafdn
   deploymentTarget:
@@ -14,7 +14,7 @@ settings:
     CODE_SIGNING_ALLOWED: "NO"
 
 targets:
-  CameraApp:
+  Fotocamera:
     type: application
     platform: iOS
     sources:
@@ -27,27 +27,27 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleName: CameraApp
-        CFBundleDisplayName: Camera Magic
-        CFBundleIdentifier: com.bellezzafdn.CameraApp
+        CFBundleName: Fotocamera
+        CFBundleDisplayName: Fotocamera
+        CFBundleIdentifier: com.bellezzafdn.Fotocamera
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0"
         CFBundlePackageType: APPL
-        CFBundleExecutable: CameraApp
+        CFBundleExecutable: "$(EXECUTABLE_NAME)"
         UILaunchStoryboardName: ""
         UIRequiredDeviceCapabilities:
           - armv7
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSCameraUsageDescription: "Camera Magic needs camera access to apply AR filters"
-        NSPhotoLibraryUsageDescription: "Camera Magic needs photo library access to save photos"
-        NSMotionUsageDescription: "Camera Magic uses motion data for shake detection"
+        NSCameraUsageDescription: "Fotocamera ha bisogno dell'accesso alla fotocamera per applicare i filtri AR"
+        NSPhotoLibraryUsageDescription: "Fotocamera ha bisogno dell'accesso alle foto per salvare le immagini"
+        NSMotionUsageDescription: "Fotocamera usa i dati di movimento per rilevare lo scuotimento"
         UIApplicationSupportsIndirectInputEvents: true
     settings:
       base:
         INFOPLIST_FILE: Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.bellezzafdn.CameraApp
-        PRODUCT_NAME: CameraApp
+        PRODUCT_BUNDLE_IDENTIFIER: com.bellezzafdn.Fotocamera
+        PRODUCT_NAME: Fotocamera
         GENERATE_INFOPLIST_FILE: true
     dependencies:
       - sdk: ARKit.framework

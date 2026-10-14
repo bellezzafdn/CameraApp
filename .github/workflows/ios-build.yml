@@ -40,10 +40,23 @@ jobs:
             DEVELOPMENT_TEAM="" \
             archive | xcpretty || true
 
-      - name: Package IPA
+      - name: Find and package IPA
         run: |
+          echo "=== Archive contents ==="
+          find ${{ github.workspace }}/build/CameraApp.xcarchive -name "*.app" -type d
+          
+          APP_PATH=$(find ${{ github.workspace }}/build/CameraApp.xcarchive -name "*.app" -type d | head -1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app bundle found in archive!"
+            echo "Full archive structure:"
+            find ${{ github.workspace }}/build/CameraApp.xcarchive -type f | head -50
+            exit 1
+          fi
+          
+          echo "Found app at: $APP_PATH"
           mkdir -p Payload
-          cp -r ${{ github.workspace }}/build/CameraApp.xcarchive/Products/Applications/CameraApp.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r CameraApp.ipa Payload
           ls -la CameraApp.ipa
 

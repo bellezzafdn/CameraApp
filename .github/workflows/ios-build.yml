@@ -1,0 +1,81 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for device (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project CameraApp.xcodeproj \
+            -scheme CameraApp \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee build.log | xcpretty
+
+      - name: Verify build output
+        if: success()
+        run: |
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
+          echo "App bundle: $APP_PATH"
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found"
+            exit 1
+          fi
+          
+          APP_NAME=$(basename "$APP_PATH" .app)
+          echo "Checking for executable: $APP_NAME"
+          ls -la "$APP_PATH/"
+          
+          if [ ! -f "$APP_PATH/$APP_NAME" ]; then
+            echo "ERROR: Executable $APP_NAME not found in .app bundle!"
+            echo "Build log errors:"
+            grep -i "error:" build.log | tail -20
+            exit 1
+          fi
+          
+          echo "Executable found and valid"
+          file "$APP_PATH/$APP_NAME"
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r CameraApp.ipa Payload
+          ls -la CameraApp.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CameraApp-IPA
+          path: CameraApp.ipa

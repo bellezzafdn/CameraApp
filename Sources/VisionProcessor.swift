@@ -4,7 +4,7 @@ import AVFoundation
 import Vision
 import Combine
 
-final class VisionProcessor {
+final class VisionProcessor: ObservableObject {
     static let shared = VisionProcessor()
     private let request = VNDetectRectanglesRequest()
     private var cancellables = Set<AnyCancellable>()

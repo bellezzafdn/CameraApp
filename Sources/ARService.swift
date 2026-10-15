@@ -42,7 +42,14 @@ final class ARService: NSObject, ObservableObject, ARSCNViewDelegate {
     
     func resumeSession() {
         // In case the session was paused, just run again with same config.
-        if !session.currentFrame.map({ $0.camera.trackingState })?.isTracking ?? false {
+        if let frame = session.currentFrame {
+            switch frame.camera.trackingState {
+            case .normal:
+                return // already tracking fine
+            default:
+                prepareSession()
+            }
+        } else {
             prepareSession()
         }
     }

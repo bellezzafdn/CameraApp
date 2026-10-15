@@ -28,10 +28,15 @@ jobs:
 
       - name: Build for device (unsigned)
         run: |
-          set -o pipefail
+          PROJECT_FILE=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+          echo "Found project: $PROJECT_FILE"
+          
+          SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_FILE" | awk '/Schemes:/{flag=1;next} flag{gsub(/^[ \t]+|[ \t]+$/, ""); if(NF) {print; exit}}')
+          echo "Found scheme: $SCHEME_NAME"
+          
           xcodebuild \
-            -project CameraApp.xcodeproj \
-            -scheme CameraApp \
+            -project "$PROJECT_FILE" \
+            -scheme "$SCHEME_NAME" \
             -sdk iphoneos \
             -configuration Release \
             -derivedDataPath build \
@@ -39,40 +44,44 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
-            build 2>&1 | tee build.log | xcpretty
+            build 2>&1 | tee build.log
 
       - name: Verify build output
-        if: success()
         run: |
-          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
-          echo "App bundle: $APP_PATH"
+          echo "=== Searching for built app ==="
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -n 1)
+          echo "App bundle path: $APP_PATH"
           
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: No .app found"
+            echo "ERROR: No .app directory found!"
             exit 1
           fi
           
           APP_NAME=$(basename "$APP_PATH" .app)
-          echo "Checking for executable: $APP_NAME"
-          ls -la "$APP_PATH/"
+          echo "App name: $APP_NAME"
+          echo "Contents of $APP_PATH:"
+          ls -la "$APP_PATH"
           
           if [ ! -f "$APP_PATH/$APP_NAME" ]; then
-            echo "ERROR: Executable $APP_NAME not found in .app bundle!"
-            echo "Build log errors:"
-            grep -i "error:" build.log | tail -20
+            echo "ERROR: Executable '$APP_NAME' NOT found in $APP_PATH!"
+            echo "--- Last 50 lines of build log ---"
+            tail -n 50 build.log
             exit 1
           fi
           
-          echo "Executable found and valid"
+          echo "=== Executable found! ==="
           file "$APP_PATH/$APP_NAME"
 
       - name: Package IPA
         run: |
-          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -n 1)
+          APP_NAME=$(basename "$APP_PATH" .app)
+          rm -rf Payload
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
-          zip -r CameraApp.ipa Payload
-          ls -la CameraApp.ipa
+          zip -r "${APP_NAME}.ipa" Payload
+          ls -lh "${APP_NAME}.ipa"
+          cp "${APP_NAME}.ipa" CameraApp.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
